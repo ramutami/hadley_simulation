@@ -774,7 +774,67 @@
 {\color{red}あとで書く！}
 
 \section{出力}
-{\color{red}あとで書く！}
+　ハドレー循環を観察するため、流線関数を出力する。
+
+\subsection{子午面流線関数}
+今、子午面での流線関数を$\Psi\bracketnormal{\theta,z}$とおく。この時、流線関数の定義より$\Psi$の等値線は流れの向きに沿っていなければならない。今、$\Psi$の等値線はその定義から次を満たす。
+
+\neqn{
+  d\Psi = \pdif{\Psi}{\theta}d\theta + \pdif{\Psi}{z}dz = 0 \; \leadsto \; \dif{z}{\theta} = -\dfrac{\pdif{\Psi}{\theta}}{\pdif{\Psi}{z}}
+}
+
+同時に今、$\bracketnormal{d\theta ,dz}^T$の三次元空間上でのベクトル$d\vect{l} = ad\theta\vect{e}_\theta + dz\vect{e}_z$が流れ$\vect{v} = vd\theta + wdz$\footnote{
+  $v$はあくまで「南北」流！
+}と平行でなければならないので次が成立する。
+
+\neqn{
+  ad\theta\vect{e}_\theta + dz\vect{e}_z \parallel vd\theta + wdz\;\leadsto \; \dif{z}{\theta} = \dfrac{aw}{v}
+}
+
+よって二つの条件を見比べれば、流線関数$\Psi$について次が成立していなければならない。
+
+\neqn{
+  v\pdif{\Psi}{\theta} + aw\pdif{\Psi}{z} = 0
+}
+
+よって流線関数は$\frac{\partial \Psi}{\partial z} = -Mv,\; \frac{\partial \Psi}{\partial \theta} = aMw$のような形でなくてはならない。さらに、数学的な要請から$\frac{\partial^2 \Psi}{\partial z\partial\theta} = \frac{\partial^2 \Psi}{\partial \theta\partial z}$でなければならないので、次が成立しなければならない。
+
+\neqn{
+  \pdifop{\theta}\bracketnormal{-Mv} = \pdifop{z}\bracketnormal{aMw}\;\leftrightarrow \; \dfrac{1}{a}\pdifop{\theta}\bracketnormal{Mv} + \pdifop{z}\bracketnormal{Mw} = 0
+}
+
+そこで、非発散条件を思い出してみると、（整理することで）以下のようになる。
+
+\neqn{
+  \dfrac{1}{a}\pdifop{\theta}\bracketnormal{v\cos\theta} + \pdifop{z}\bracketnormal{w\cos\theta}
+}
+
+よって上二式を見比べると$M=\cos\theta$となっていれば良いだろうとわかる。よって流線関数は次を満たす。
+
+\neqn{
+  \pdif{\Psi}{z} = -v\cos\theta\quad \pdif{\Psi}{\theta} = aw\cos\theta
+}
+
+\subsection{流線関数の計算}
+　今、$\pdif{\Psi}{\theta} = aw\cos\theta$が成立するので、$z=0$で$w=0$という境界条件と合わせると
+\neqn{
+  \left.\pdif{\Psi}{\theta}\right|_{z=0} = 0 \;\leadsto \; \Psi\bracketnormal{\theta,0} = \text{const.} = C(t)
+}
+
+となっており、地表面で流線関数の値は一定となっていることがわかる。その上で、今流線関数についてはその等高線のみに興味があり定数の差に関心はないので、任意の時刻$t$で$C(t)=0$としてしまって良い。よって、任意の点における流線関数が
+
+\neqns{lcl}{
+  \Psi\bracketnormal{\theta,z} &\neqnsequal& \Psi\bracketnormal{\theta,0} + \dint_0^z \pdif{\Psi}{z}dz'\\
+  &\neqnsequal & \dint_0^z -v\cos\theta dz'
+}
+
+と計算できる。よっていま、$\Psi_{jk}$を$w,\Phi$と同様に$jk$番目のセルの下辺に保持することにすれば、$\Psi_{jk}$の計算スキームは次のようになる。
+
+\neqn{
+  \Psi_{jk} = \dsum_{k'=0}^{k-1} \bracketnormal{-\dfrac{v_{jk}+v_{j+1,k}}{2}\cos\theta_j\Delta z}
+}
+
+
 
 \section{プログラムの概要}
 {\color{red}あとで書く！}
