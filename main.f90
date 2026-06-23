@@ -38,7 +38,7 @@ module parameters_and_variables_for_simulation
         real(8),allocatable :: v_mid(:,:)
         real(8),allocatable :: pot_temp(:,:) !正規化された温位
         real(8),allocatable :: pot_temp_mid(:,:) 
-        real(8), allocatable :: pot_temp_E(:,:)
+        real(8),allocatable :: pot_temp_E(:,:)
         real(8),allocatable :: w(:,:)
         real(8),allocatable :: Phi_diff(:,:) !ポテンシャルPhiのtheta微分
         real(8),allocatable :: theta(:) !緯度
@@ -108,6 +108,7 @@ module initialization
 
         pot_temp_mid = 0.0d0
         w = 0.0d0
+        Phi_diff = 0.0d0
     end subroutine initialize_field
 end module initialization
 
@@ -119,8 +120,12 @@ module update_variables
 
     subroutine update_u(u_in,v_in,w_in,u_n,u_out) 
         implicit none
-        real(8),intent(in) :: u_in(-1:j_max,-1:k_max),v_in(0:j_max,-1:k_max),w_in(0:j_max-1,0:k_max),u_n(-1:j_max,-1:k_max)
+        real(8),intent(in) :: u_in(-1:j_max,-1:k_max) 
+        real(8),intent(in) :: v_in(0:j_max,-1:k_max)
+        real(8),intent(in) :: w_in(0:j_max-1,0:k_max)
+        real(8),intent(in) :: u_n(-1:j_max,-1:k_max)
         real(8),intent(out) :: u_out(-1:j_max,-1:k_max)
+
         integer :: j,k
         real(8) :: term1,term2,term3,term4,term5
 
@@ -137,6 +142,50 @@ module update_variables
         end do
 
     end subroutine update_u
+
+    subroutine update_v(u_in,v_in,w_in,Phi_diff_in,v_n,v_out)
+        implicit none
+        real(8),intent(in) :: u_in(-1:j_max,-1:k_max) 
+        real(8),intent(in) :: v_in(0:j_max,-1:k_max)
+        real(8),intent(in) :: w_in(0:j_max-1,0:k_max)
+        real(8),intent(in) :: Phi_diff_in(0:j_max-1,0:k_max)
+        real(8),intent(in) :: v_n(0:j_max,-1:k_max)
+        real(8),intent(out) :: v_out(0:j_max,-1:k_max)
+
+        integer :: j,k
+        real(8) :: term1,term2,term3,term4,term5,term6
+
+        do k = 0,k_max-1
+            do j = 1,j_max-1
+                term1 = -1.0d0/(a*cos(0.5d0*(theta(j-1)+theta(j)))) * ((0.5d0*(v_in(j,k) + v_in(j+1,k)))**2 * cos(theta(j))-(0.5d0*(v_in(j-1,k) + v_in(j,k)))**2 * cos(theta(j-1)))/dtheta
+                term2 = -1.0d0 * (0.5d0*(w_in(j-1,k+1) + w_in(j,k+1))*0.5d0*(v_in(j,k+1)+v_in(j,k))-0.5d0*(w_in(j-1,k) + w_in(j,k))*0.5d0*(v_in(j,k)+v_in(j,k-1)))/dz
+                term3 = -2.0d0*Omega*sin(0.5d0*(theta(j-1)+theta(j))) * 0.5d0*(u_in(j,k)+u_in(j-1,k))
+                term4 = -1.0d0 * (0.5d0*(u_in(j,k) + u_in(j-1,k)))**2 * tan(0.5d0*(theta(j-1)+theta(j)))/a
+                term5 = -1.0d0/a/4.0d0 * (Phi_diff_in(j-1,k) + Phi_diff_in(j-1,k+1) + Phi_diff_in(j,k) + Phi_diff_in(j,k+1))
+                term6 = nu/dz/dz * (v_in(j,k+1)-v_in(j,k)-v_in(j,k)+v_in(j,k-1))
+                v_out(j,k) = v_n(j,k) + delta_t * (term1 + term2 + term3 + term4 + term5 + term6)
+            end do
+
+            v_out(0,k) = 0.0d0
+            v_out(j_max,k) = 0.0d0
+        
+        end do
+
+    end subroutine update_v
+
+    subroutine update_potential_temperature(v_in,w_in,pot_temp_in,pot_temp_E,pot_temp_n,pot_temp_out)
+        implicit none
+        real(8),intent(in) :: v_in(0:j_max,-1:k_max)
+        real(8),intent(in) :: w_in(0:j_max-1,0:k_max)
+        real(8),intent(in) :: pot_temp_in(-1:j_max,-1:k_max)
+        real(8),intent(in) :: pot_temp_E(0:j_max-1,0:k_max-1)
+        real(8),intent(in) :: pot_temp_n(-1:j_max,-1:k_max)
+        real(8),intent(out) :: pot_temp_out
+
+
+    end subroutine update_potential_temperature
+
+
 end module update_variables
 
 module update_boundary
@@ -147,20 +196,31 @@ module update_boundary
 
     subroutine update_boundary_u(u_in)
         implicit none
-        real(8),intent(in) :: u_in(-1:j_max,-1:k_max)
+        real(8),intent(inout) :: u_in(-1:j_max,-1:k_max)
         integer :: j,k
 
         do k=0,k_max-1
-            u(-1,k) = u(0,k)
-            u(j_max,k) = u(j_max-1,k)
+            u_in(-1,k) = u_in(0,k)
+            u_in(j_max,k) = u_in(j_max-1,k)
         end do
 
         do j=-1,j_max
-            u(j,k_max) = u(j,k_max-1)
-            u(j,-1) = (nu/dz - C_drag/2.0d0)/(nu/dz + C_drag/2.0d0)*u(j,0)
+            u_in(j,k_max) = u_in(j,k_max-1)
+            u_in(j,-1) = (nu/dz - C_drag/2.0d0)/(nu/dz + C_drag/2.0d0)*u_in(j,0)
         end do
     end subroutine update_boundary_u
 
+    subroutine update_boundary_v(v_in)
+        implicit none
+        integer :: j
+        real(8),intent(inout) :: v_in(0:j_max,-1:k_max)
+
+        do j = 0,j_max
+            v_in(j,k_max) = v_in(j,k_max-1)
+            v_in(j,-1) = (nu/dz - C_drag/2.0d0)/(nu/dz + C_drag/2.0d0)*v_in(j,0)
+        end do
+
+    end subroutine update_boundary_v
 
 end module update_boundary
 
@@ -181,5 +241,7 @@ program main
 
     call update_u(u_in=u, v_in=v, w_in=w, u_n=u, u_out=u_mid)
     call update_boundary_u(u_in=u_mid)
+    call update_v(u_in=u,v_in=v,w_in=w,Phi_diff_in=Phi_diff,v_n=v,v_out=v_mid)
+    call update_boundary_v(v_in=v_mid)
 
 end program main
