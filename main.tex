@@ -446,7 +446,7 @@
 \begin{algorithm}[H]
   \caption*{\textbf{subroutine:} update\_u}
   \begin{algorithmic}[1]
-    \Require $\theta[-1:j_\text{max}]$、$u^\text{in}[-1:j_\text{max},-1,k_\text{max}]$、$v^\text{in}[0:j_\text{max},0:k_\text{max}-1]$、$w^\text{in}[0:j_\text{max}-1,0:k_\text{max}]$、$u^n[0:j_\text{max}-1,0:k_\text{max}-1]$
+    \Require $\theta[-1:j_\text{max}]$、$u^\text{in}[-1:j_\text{max},-1:k_\text{max}]$、$v^\text{in}[0:j_\text{max},0:k_\text{max}-1]$、$w^\text{in}[0:j_\text{max}-1,0:k_\text{max}]$、$u^n[0:j_\text{max}-1,0:k_\text{max}-1]$
     \Ensure $u^\text{out}[0:j_\text{max}-1,0:k_\text{max}-1]$
     \Statex
     \Do{$j=0,j_\text{max}-1$}
@@ -520,7 +520,7 @@
 ただし$\hat{\Theta}^\text{out} = \hat{\Theta}^{n+1}\;\text{or}\;\hat{\Theta}^*$であり、右辺の$v,w,\hat{\Theta}$には$v^n,w^n,\hat{\Theta}^n$ないし$v^*,w^*,\hat{\Theta}^*$が入る。その上で、上式をセル中心で評価すると次のようになる。
 \neqns{l}{
   \hat{\Theta}^\text{out}_{jk} = \hat{\Theta}^n_{jk} + \Delta t\Bigg\{-\dfrac{1}{a\cos\theta_j}\dfrac{\dfrac{\hat{\Theta}_{jk}+\hat{\Theta}_{j+1,k}}{2}v_{j+1,k}\cos\dfrac{\theta_{j+1}+\theta_{j}}{2}-\dfrac{\hat{\Theta}_{j-1,k}+\hat{\Theta}_{j,k}}{2}v_{j,k}\cos\dfrac{\theta_{j}+\theta_{j-1}}{2}}{\Delta \theta}\\[5pt]
-  \qquad\qquad\qquad\qquad - \dfrac{\dfrac{\hat{\Theta}_{jk}+\hat{\Theta}_{j,k+1}}{2}w_{j,k+1}-\dfrac{\hat{\Theta}_{j,k-1}+\hat{\Theta}_{j,k}}{2}w_{j,k}}{\Delta z}-\bracketnormal{\hat{\Theta}_{jk}-\hat{\Theta}_{Ejk}}\tau^{-1}\\[5pt]
+  \qquad\qquad\qquad\qquad - \dfrac{\dfrac{\hat{\Theta}_{jk}+\hat{\Theta}_{j,k+1}}{2}w_{j,k+1}-\dfrac{\hat{\Theta}_{j,k-1}+\hat{\Theta}_{j,k}}{2}w_{j,k}}{\Delta z}-\bracketnormal{\hat{\Theta}_{jk}-\hat{\Theta}_{E,jk}}\tau^{-1}\\[5pt]
   \qquad\qquad\qquad\qquad + \dfrac{\nu}{\Delta z}\bracketnormal{\dfrac{\hat{\Theta}_{j,k+1}-\hat{\Theta}_{jk}}{\Delta z}-\dfrac{\hat{\Theta}_{jk}-\hat{\Theta}_{j,k-1}}{\Delta z}}\Bigg\}
 }
 
@@ -533,15 +533,15 @@
 \begin{algorithm}[H]
   \caption*{\textbf{subroutine:} update\_potential\_temperature}
   \begin{algorithmic}[1]
-    \Require $\hat{\Theta}^\text{in}[-1:j_\text{max},-1:k_\text{max}]$、$\hat{\Theta}_E[0:j_\text{max}-1,0:k_\text{max}-1]$、$\hat{\Theta}^n[0:j_\text{max}-1,0:k_\text{max}-1]$、$v^\text{in}[0:j_\text{max},0:k_\text{max}-1]$、$w^\text{in}[0:j_\text{max}-1,0:k_\text{max}]$
+    \Require $\theta[-1:j_\text{max}]$、$\hat{\Theta}^\text{in}[-1:j_\text{max},-1:k_\text{max}]$、$\hat{\Theta}_E[0:j_\text{max}-1,0:k_\text{max}-1]$、$\hat{\Theta}^n[0:j_\text{max}-1,0:k_\text{max}-1]$、$v^\text{in}[0:j_\text{max},0:k_\text{max}-1]$、$w^\text{in}[0:j_\text{max}-1,0:k_\text{max}]$
     \Ensure $\hat{\Theta}^\text{out}[0:j_\text{max}-1,0:k_\text{max}-1]$
     \Statex
     \Do{$j=0,j_\text{max}-1$}
     \Do{$k=0,k_\text{max}-1$}
-    \State $\begin{aligned}
-      &\hat{\Theta}^\text{out}_{jk} = \hat{\Theta}^n_{jk} + \Delta t\Bigg\{-\dfrac{1}{a\cos\theta_j}\dfrac{\dfrac{\hat{\Theta}_{jk}+\hat{\Theta}_{j+1,k}}{2}v_{j+1,k}\cos\dfrac{\theta_{j+1}+\theta_{j}}{2}-\dfrac{\hat{\Theta}_{j-1,k}+\hat{\Theta}_{j,k}}{2}v_{j,k}\cos\dfrac{\theta_{j}+\theta_{j-1}}{2}}{\Delta \theta}\\[5pt]
-      &\qquad\qquad\qquad\qquad - \dfrac{\dfrac{\hat{\Theta}_{jk}+\hat{\Theta}_{j,k+1}}{2}w_{j,k+1}-\dfrac{\hat{\Theta}_{j,k-1}+\hat{\Theta}_{j,k}}{2}w_{j,k}}{\Delta z}-\bracketnormal{\hat{\Theta}_{jk}-\hat{\Theta}_{Ejk}}\tau^{-1}\\[5pt]
-      &\qquad\qquad\qquad\qquad + \dfrac{\nu}{\Delta z}\bracketnormal{\dfrac{\hat{\Theta}_{j,k+1}-\hat{\Theta}_{jk}}{\Delta z}-\dfrac{\hat{\Theta}_{jk}-\hat{\Theta}_{j,k-1}}{\Delta z}}\Bigg\}
+    \State $\begin{aligned}[t]
+      &\hat{\Theta}^\text{out}_{jk} = \hat{\Theta}^n_{jk} + \Delta t\Bigg\{-\dfrac{1}{a\cos\theta_j}\dfrac{\dfrac{\hat{\Theta}^\text{in}_{jk}+\hat{\Theta}^\text{in}_{j+1,k}}{2}v^\text{in}_{j+1,k}\cos\dfrac{\theta_{j+1}+\theta_{j}}{2}-\dfrac{\hat{\Theta}^\text{in}_{j-1,k}+\hat{\Theta}^\text{in}_{j,k}}{2}v^\text{in}_{j,k}\cos\dfrac{\theta_{j}+\theta_{j-1}}{2}}{\Delta \theta}\\[5pt]
+      &\qquad\qquad\qquad\qquad - \dfrac{\dfrac{\hat{\Theta}^\text{in}_{jk}+\hat{\Theta}^\text{in}_{j,k+1}}{2}w^\text{in}_{j,k+1}-\dfrac{\hat{\Theta}^\text{in}_{j,k-1}+\hat{\Theta}^\text{in}_{j,k}}{2}w^\text{in}_{j,k}}{\Delta z}-\bracketnormal{\hat{\Theta}^\text{in}_{jk}-\hat{\Theta}_{E,jk}}\tau^{-1}\\[5pt]
+      &\qquad\qquad\qquad\qquad + \dfrac{\nu}{\Delta z}\bracketnormal{\dfrac{\hat{\Theta}^\text{in}_{j,k+1}-\hat{\Theta}^\text{in}_{jk}}{\Delta z}-\dfrac{\hat{\Theta}^\text{in}_{jk}-\hat{\Theta}^\text{in}_{j,k-1}}{\Delta z}}\Bigg\}
     \end{aligned}$
     \EndDo
     \EndDo
@@ -567,14 +567,14 @@
 \begin{algorithm}[!htbp]
   \caption*{\textbf{subroutine:} calculate\_w}
   \begin{algorithmic}[1]
-    \Require $\theta[-2:j_\text{max}+1]$、$v[-1:j_\text{max}+1,0:k_\text{max}-1]$
-    \Ensure $w[-1:j_\text{max},0:k_\text{max}]$
+    \Require $\theta[-1:j_\text{max}]$、$v[0:j_\text{max},0:k_\text{max}-1]$
+    \Ensure $w[0:j_\text{max}-1,0:k_\text{max}]$
     \Statex
-    \Do{$j=1,j_\text{max}$}
+    \Do{$j=0,j_\text{max}-1$}
     \State $w=0$
     \Do{$k=0,k_\text{max}$}
     \State $w_{jk} = w$
-    \State if $k=k_\text{max}$: cycle
+    \State if $k=k_\text{max}$: exit loop
     \State $w = w + \Delta z\bracketnormal{-\dfrac{1}{a\cos\theta_j}\dfrac{v_{j+1,k}\cos\bracketnormal{\dfrac{\theta_{j+1}+\theta_{j}}{2}}-v_{j,k}\cos\bracketnormal{\dfrac{\theta_{j}+\theta_{j-1}}{2}}}{\Delta \theta}}$
     \EndDo
     \EndDo
@@ -589,7 +589,7 @@
   && \qquad\qquad\qquad\qquad\qquad + \dint_0^z g\pdif{\hat{\Theta}}{\theta}dz' -\dfrac{1}{H}\dint_0^H\bracketnormal{\dint_0^z g\pdif{\hat{\Theta}}{\theta}dz'}dz''\labeqn{35}
 }
 
-よってあらかじめ$\int _0^z g\frac{\partial\hat{\Theta}}{\partial\theta}dz'$をセル下辺で評価しておくと見通しが良い。今積分はセル中心での値に厚み$\Delta z$をかけて足し合わせることで評価することにしているので、これは次のように計算することができる。
+今回はこの値を$w,\Phi$と同様、$jk$番目のセルの下辺に$\bracketnormal{\frac{\partial\Phi}{\partial\theta}}_{jk}$を格納する形で保持することにする。このとき、あらかじめ$\int _0^z g\frac{\partial\hat{\Theta}}{\partial\theta}dz'$をセル下辺で評価しておくと見通しが良い。今積分はセル中心での値に厚み$\Delta z$をかけて足し合わせることで評価することにしているので、これは次のように計算することができる。
 
 \neqn{
   \bracketnormal{\dint _0^z g\frac{\partial\hat{\Theta}}{\partial\theta}dz'}_{jk} = \dsum_{k'=0}^{k-1}\bracketnormal{\Delta z g\dfrac{\hat{\Theta}_{j+1,k'}-\hat{\Theta}_{j-1,k'}}{2\Delta \theta}}
@@ -606,22 +606,22 @@
   \Bigg\}\Bigg]
 }
 
-よってこれらを用いて$\frac{\partial\Phi}{\partial\theta}$を計算するルーチンをcalculate\_partial\_Phiのように定めればいい。
+よってこれらを用いて$\frac{\partial\Phi}{\partial\theta}$を計算するルーチンをcalculate\_partial\_Phiのように定めればいい。ただし入力変数に必要なメモリの範囲は、予報変数$u,v,\hat{\Theta}$の計算に必要な$w$のメモリ分から逆算している。
 
 \vs{0.5}
 
 \begin{algorithm}[H]
   \caption*{\textbf{subroutine:} calculate\_partial\_Phi}
   \begin{algorithmic}[1]
-    \Require $\theta[-2:j_\text{max}+1]$、$u[-1:j_\text{max},0:k_\text{max}-1]$、$v[-1:j_\text{max}+1,-1:k_\text{max}]$、$\hat{\Theta}[-2,j_\text{max}+1,0:k_\text{max}-1]$、$w[-1:j_\text{max},0:k_\text{max}]$
-    \Ensure $\pdif{\Phi}{\theta}[-1:j_\text{max},0:k_\text{max}]$
+    \Require $\theta[-1:j_\text{max}]$、$u[0:j_\text{max}-1,0:k_\text{max}-1]$、$v[0:j_\text{max},-1:k_\text{max}]$、$\hat{\Theta}[-1,j_\text{max},0:k_\text{max}-1]$、$w[0:j_\text{max}-1,0:k_\text{max}]$
+    \Ensure $\pdif{\Phi}{\theta}[0:j_\text{max}-1,0:k_\text{max}]$
     \Statex
-    \Do{$j=-1,j_\text{max}$}
+    \Do{$j=0,j_\text{max}-1$}
     \State \Comment{温位の積分をセル下辺で評価する}
     \State $\text{integral} = 0$
     \Do{$k=0,k_\text{max}$}
     \State $\bracketnormal{\dint_0^z g\pdif{\hat{\Theta}}{\theta}dz'}_{jk} = \text{integral} $
-    \State if $k=k_\text{max}$: cycle
+    \State if $k=k_\text{max}$: exit
     \State $\text{integral}=\text{integral} + \Delta z g\dfrac{\hat{\Theta}_{j+1,k}-\hat{\Theta}_{j-1,k}}{2\Delta \theta}$
     \EndDo
     \State \Comment{第三項の積分の評価}
@@ -650,7 +650,122 @@
 \end{algorithm}
 
 
-\subsection{境界の外側のセルの更新}
+\subsection{メモリ確保・ダミーセル・境界条件}
+
+　これまでの計算から、計算に実質的に必要なメモリの範囲が次のようであるとわかる。
+\neqns{ll}{
+  \text{$u,\hat{\Theta}$について：}\quad &[-1:j_\text{max},-1:k_\text{max}]\\
+  \text{$v$について：}\quad &[0:j_\text{max},-1:k_\text{max}]\\
+  \text{$w,\frac{\partial\Phi}{\partial\theta}$について：}\quad &[0:j_\text{max}-1,0:k_\text{max}]
+}
+
+しかし、予報変数$u,v,\hat{\Theta}$の更新においては次の範囲の計算しか行っていない。\footnote{
+  診断変数については大丈夫。
+}
+\neqns{ll}{
+  \text{$u,\hat{\Theta}$について：}\quad &[0:j_\text{max}-1,0:k_\text{max}-1]\\
+  \text{$v$について：}\quad &[0:j_\text{max},0:k_\text{max}-1]
+}
+
+すなわち$\theta,z$方向にそれぞれ一マス分のダミーセルを用意する必要があり、その上で$u,\hat{\Theta}$については$j=-1,j=j_\text{max}$および$k=-1,k=k_\text{max}$の値を、$v$については$k=-1,k=k_\text{max}$の値を、それぞれの更新が終わった後に境界条件に従って更新する必要がある。（\reffig{5}参照。）
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=0.75\textwidth]{./teximage/dummycell.png}
+  \caption{ダミーセルを用いた計算の流れ}
+  \label{fig:5}
+\end{figure}
+
+\vs{0}
+　特に今境界条件は
+\neqns{ll}{
+  & \text{at}\;\; z=H : \;\; w=0,\;\; \pdif{u}{z}=\pdif{v}{z}=\pdif{\hat{\Theta}}{z} = 0\\[5pt]
+  & \text{at}\;\; z=0 : \;\; \; w=0,\;\;\;\pdif{\hat{\Theta}}{z}=0,\;\;\nu\pdif{u}{z} = Cu,\;\;\nu\pdif{v}{z} = Cv\\
+}
+
+であり、さらに$\theta = \pm\pi/2$においては
+
+\neqns{l}{
+  \text{at}\;\; \theta = \pm\dfrac{\pi}{2} : \;\; \pdif{u}{\theta}=\pdif{\hat{\Theta}}{\theta} = 0
+}
+
+となっていることが期待される。\footnote{
+  考えている子午面の反対の半球の子午面において対称性が成立するならこうだろうな、という考えのもと定めた。
+}よってダミーセルにおける値は次のように計算されなければならない。
+\neqns{l}{
+  \bracketnormal{u,\hat{\Theta}}_{-1,k} = \bracketnormal{u,\hat{\Theta}}_{0,k}\qquad \bracketnormal{u,\hat{\Theta}}_{j_\text{max},k} = \bracketnormal{u,\hat{\Theta}}_{j_\text{max}-1,k} \\[10pt]
+  \bracketnormal{u,v,\hat{\Theta}}_{j,k_\text{max}} = \bracketnormal{u,v,\hat{\Theta}}_{j,k_\text{max}-1}\\[10pt]
+  \hat{\Theta}_{j,-1}=\hat{\Theta}_{j,0}\qquad\bracketnormal{u,v}_{j,-1}=\dfrac{\frac{\nu}{\Delta z}-\frac{C}{2}}{\frac{\nu}{\Delta z}+\frac{C}{2}}\bracketnormal{u,v}_{j,0}\labeqn{63}
+}
+
+ただし\refeqn{63}右式は$z=0$での境界条件を離散化することで得られる下記の式を整理することで得られる。
+
+\neqn{
+  \text{at}\; z=0\;\; :\nu\pdif{\bracketnormal{u,v}}{z} = C\times \bracketnormal{u,v} \;\leadsto \; \nu\dfrac{\bracketnormal{u,v}_{j,0}-\bracketnormal{u,v}_{j,-1}}{\Delta z} = C\dfrac{\bracketnormal{u,v}_{j,0}+\bracketnormal{u,v}_{j,-1}}{2}
+}
+
+　以上より、次のルーチンを$u,v,\hat{\Theta}$の計算後に実行する必要がある。
+
+\vs{0.5}
+
+\begin{algorithm}[H]
+  \caption*{\textbf{subroutine:} update\_boundary\_u}
+  \begin{algorithmic}[1]
+    \Require $u[-1:j_\text{max},-1:k_\text{max}]$
+    \Ensure $u[-1:j_\text{max},-1:k_\text{max}]$
+    \Statex
+    \State \Comment{極境界}
+    \Do{$k=0,k_\text{max}-1$}
+    \State $u_{-1,k} = u_{0,k}$
+    \State $u_{j_\text{max},k} = u_{j_\text{max}-1,k}$
+    \EndDo
+    \State \Comment{上下境界}
+    \Do{$j=-1,j_\text{max}$}
+    \State $u_{j,k_\text{max}} = u_{j,k_\text{max}-1}$
+    \State $u_{j,-1} = \dfrac{\frac{\nu}{\Delta z}-\frac{C}{2}}{\frac{\nu}{\Delta z}+\frac{C}{2}}u_{j,0}$
+    \EndDo
+  \end{algorithmic}
+\end{algorithm}
+
+
+\vs{0.5}
+
+\begin{algorithm}[H]
+  \caption*{\textbf{subroutine:} update\_boundary\_potential\_temp}
+  \begin{algorithmic}[1]
+    \Require $\hat{\Theta}[-1:j_\text{max},-1:k_\text{max}]$
+    \Ensure $\hat{\Theta}[-1:j_\text{max},-1:k_\text{max}]$
+    \Statex
+    \State \Comment{極境界}
+    \Do{$k=0,k_\text{max}-1$}
+    \State $\hat{\Theta}_{-1,k} = \hat{\Theta}_{0,k}$
+    \State $\hat{\Theta}_{j_\text{max},k} = \hat{\Theta}_{j_\text{max}-1,k}$
+    \EndDo
+    \State \Comment{上下境界}
+    \Do{$j=-1,j_\text{max}$}
+    \State $\hat{\Theta}_{j,k_\text{max}} = \hat{\Theta}_{j,k_\text{max}-1}$
+    \State $\hat{\Theta}_{j,-1} = \hat{\Theta}_{j,0}$
+    \EndDo
+  \end{algorithmic}
+\end{algorithm}
+
+\vs{0.5}
+
+\begin{algorithm}[H]
+  \caption*{\textbf{subroutine:} update\_boundary\_v}
+  \begin{algorithmic}[1]
+    \Require $v[0:j_\text{max},-1:k_\text{max}]$
+    \Ensure $v[0:j_\text{max},-1:k_\text{max}]$
+    \Statex
+    \State \Comment{上下境界}
+    \Do{$j=0,j_\text{max}$}
+    \State $v_{j,k_\text{max}} = v_{j,k_\text{max}-1}$
+    \State $v_{j,-1} = \dfrac{\frac{\nu}{\Delta z}-\frac{C}{2}}{\frac{\nu}{\Delta z}+\frac{c}{2}}v_{j,0}$
+    \EndDo
+  \end{algorithmic}
+\end{algorithm}
+
+
 
 \end{document}
 

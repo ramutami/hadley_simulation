@@ -10,4 +10,4 @@
 \contentsline {subsection}{\numberline {3.3}$\hat {\Theta }$の計算}{8}{subsection.3.3}%
 \contentsline {subsection}{\numberline {3.4}$w$の計算}{9}{subsection.3.4}%
 \contentsline {subsection}{\numberline {3.5}$\dfrac {\partial {\Phi }}{\partial \theta }$の計算}{10}{subsection.3.5}%
-\contentsline {subsection}{\numberline {3.6}境界の外側のセルの更新}{12}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.6}メモリ確保・ダミーセル・境界条件}{13}{subsection.3.6}%
