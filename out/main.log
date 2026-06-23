@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.11.3)  24 JUN 2026 03:12
+This is XeTeX, Version 3.141592653-2.6-0.999995 (TeX Live 2023) (preloaded format=xelatex 2023.11.3)  24 JUN 2026 04:38
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1365,15 +1365,15 @@ File: ./teximage/dummycell.png Graphic file (type bmp)
 <./teximage/dummycell.png>
  [13] [14] [15] (out/main.aux)
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 553F5390393DBE301D497E5297D8C346;1323.
+(rerunfilecheck)             Checksum: 93F7525969A1D183148B8C8A863922C9;1685.
  ) 
 Here is how much of TeX's memory you used:
- 35670 strings out of 476683
- 743391 string characters out of 5804047
+ 35724 strings out of 476683
+ 747469 string characters out of 5804047
  1877018 words of memory out of 5000000
- 55256 multiletter control sequences out of 15000+600000
+ 55310 multiletter control sequences out of 15000+600000
  528202 words of font info for 138 fonts, out of 8000000 for 9000
  1353 hyphenation exceptions out of 8191
  105i,18n,112p,533b,565s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on out/main.xdv (15 pages, 177472 bytes).
+Output written on out/main.xdv (15 pages, 182780 bytes).

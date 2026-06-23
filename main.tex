@@ -650,6 +650,9 @@
 \end{algorithm}
 
 
+\subsection{\texorpdfstring{$\hat{\Theta}_E$の計算}{基準温位の計算}}
+{\color{red}あとで書く！}
+
 \subsection{メモリ確保・ダミーセル・境界条件}
 
 　これまでの計算から、計算に実質的に必要なメモリの範囲が次のようであるとわかる。
@@ -691,6 +694,8 @@
 
 となっていることが期待される。\footnote{
   考えている子午面の反対の半球の子午面において対称性が成立するならこうだろうな、という考えのもと定めた。
+}\footnote{
+  $v$については$\theta = \pm \pi/2$で$v=0$としている。（update\_vのサブルーチン内でそのように計算している。）これも一種の境界条件ではある。
 }よってダミーセルにおける値は次のように計算されなければならない。
 \neqns{l}{
   \bracketnormal{u,\hat{\Theta}}_{-1,k} = \bracketnormal{u,\hat{\Theta}}_{0,k}\qquad \bracketnormal{u,\hat{\Theta}}_{j_\text{max},k} = \bracketnormal{u,\hat{\Theta}}_{j_\text{max}-1,k} \\[10pt]
@@ -760,10 +765,16 @@
     \State \Comment{上下境界}
     \Do{$j=0,j_\text{max}$}
     \State $v_{j,k_\text{max}} = v_{j,k_\text{max}-1}$
-    \State $v_{j,-1} = \dfrac{\frac{\nu}{\Delta z}-\frac{C}{2}}{\frac{\nu}{\Delta z}+\frac{c}{2}}v_{j,0}$
+    \State $v_{j,-1} = \dfrac{\frac{\nu}{\Delta z}-\frac{C}{2}}{\frac{\nu}{\Delta z}+\frac{C}{2}}v_{j,0}$
     \EndDo
   \end{algorithmic}
 \end{algorithm}
+
+\section{初期条件・パラメタの設定}
+{\color{red}あとで書く！}
+
+\section{プログラムの概要}
+{\color{red}あとで書く！}
 
 
 
