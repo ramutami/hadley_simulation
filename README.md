@@ -1,2 +1,2 @@
 - READMEに当たるものは ./out/main.pdf に書いています。
-- コードはmain.f90です。ss
+- コードはmain.f90です。
