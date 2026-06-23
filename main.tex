@@ -424,6 +424,130 @@
 \section{計算の実装}
 　微分演算子は基本的に中央差分で評価することにする。また積分は、セル中心での値に$\Delta z$をかけて足し合わせることで評価する。その上で、$w,\Phi$の計算式、および$u,v,\Theta$の更新式の離散化を行う。
 
+\subsection{\texorpdfstring{$u$の更新}{uの計算}}
+
+　$u$の更新式は次のようになる。
+
+\neqn{
+  u^\text{out} = u^n + \Delta t\bracketnormal{-\dfrac{1}{a\cos\theta}\pdifop{\theta}\bracketnormal{vu\cos\theta}-\pdifop{z}\bracketnormal{wu}+fv+\dfrac{uv\tan\theta }{a}+\pdifop{z}\bracketnormal{\nu \pdif{u}{z}}}
+}
+
+ただし$u^\text{out} = u^{n+1}\;\text{or}\;u^*$であり、右辺の$u,v,w$には$u^n,v^n,w^n$ないし$u^*,v^*,w^*$が入る。その上で、上式をセル中心で評価すると次のようになる。
+\neqns{l}{
+  u_{jk}^\text{out} = u^n_{jk} + \Delta t\Bigg\{-\dfrac{1}{a\cos\theta_j}\dfrac{\dfrac{u_{jk}+u_{j+1,k}}{2}v_{j+1,k}\cos\dfrac{\theta_{j+1}+\theta_{j}}{2}-\dfrac{u_{j-1,k}+u_{j,k}}{2}v_{j,k}\cos\dfrac{\theta_{j}+\theta_{j-1}}{2}}{\Delta \theta} \\[5pt]
+  \qquad\qquad\qquad\qquad - \dfrac{\dfrac{u_{jk}+u_{j,k+1}}{2}w_{j,k+1}-\dfrac{u_{j,k-1}+u_{j,k}}{2}w_{j,k}}{\Delta z} + 2\Omega\sin\theta_j\dfrac{v_{jk}+v_{j+1,k}}{2}\\[5pt]
+  \qquad\qquad\qquad\qquad+\dfrac{u_{jk}\dfrac{v_{jk}+v_{j+1,k}}{2}\tan\theta_{j}}{a}+\dfrac{\nu}{\Delta z}\bracketnormal{\dfrac{u_{j,k+1}-u_{jk}}{\Delta z}-\dfrac{u_{jk}-u_{j,k-1}}{\Delta z}}\Bigg\}
+}
+
+よって、$u$を更新するルーチンをupdate\_uのように定めればいい。ただし入力（Require）で必要になるメモリの範囲は最終的な出力の範囲から逆算している。
+
+\vs{0.5}
+
+\begin{algorithm}[H]
+  \caption*{\textbf{subroutine:} update\_u}
+  \begin{algorithmic}[1]
+    \Require $\theta[-1:j_\text{max}]$、$u^\text{in}[-1:j_\text{max},-1,k_\text{max}]$、$v^\text{in}[0:j_\text{max},0:k_\text{max}-1]$、$w^\text{in}[0:j_\text{max}-1,0:k_\text{max}]$、$u^n[0:j_\text{max}-1,0:k_\text{max}-1]$
+    \Ensure $u^\text{out}[0:j_\text{max}-1,0:k_\text{max}-1]$
+    \Statex
+    \Do{$j=0,j_\text{max}-1$}
+    \Do{$k=0,k_\text{max}-1$}
+    \State $\begin{aligned}[t]
+      &u_{jk}^\text{out} = u^n_{jk} + \Delta t\Bigg\{-\dfrac{1}{a\cos\theta_j}\dfrac{\dfrac{u^\text{in}_{jk}+u^\text{in}_{j+1,k}}{2}v^\text{in}_{j+1,k}\cos\dfrac{\theta_{j+1}+\theta_{j}}{2}-\dfrac{u^\text{in}_{j-1,k}+u^\text{in}_{j,k}}{2}v^\text{in}_{j,k}\cos\dfrac{\theta_{j}+\theta_{j-1}}{2}}{\Delta \theta} \\[5pt]
+      &\qquad\qquad\qquad\qquad - \dfrac{\dfrac{u^\text{in}_{jk}+u^\text{in}_{j,k+1}}{2}w^\text{in}_{j,k+1}-\dfrac{u^\text{in}_{j,k-1}+u^\text{in}_{j,k}}{2}w^\text{in}_{j,k}}{\Delta z} + 2\Omega\sin\theta_j\dfrac{v^\text{in}_{jk}+v^\text{in}_{j+1,k}}{2}\\[5pt]
+      &\qquad\qquad\qquad\qquad+\dfrac{u^\text{in}_{jk}\dfrac{v^\text{in}_{jk}+v^\text{in}_{j+1,k}}{2}\tan\theta_{j}}{a}+\dfrac{\nu}{\Delta z}\bracketnormal{\dfrac{u^\text{in}_{j,k+1}-u^\text{in}_{jk}}{\Delta z}-\dfrac{u^\text{in}_{jk}-u^\text{in}_{j,k-1}}{\Delta z}}\Bigg\}
+    \end{aligned}$
+    \EndDo
+    \EndDo
+  \end{algorithmic}
+\end{algorithm}
+
+\subsection{\texorpdfstring{$v$の更新}{vの計算}}
+
+　$v$の更新式は次のようになる。
+\neqn{
+  v^\text{out} = v^n + \Delta t\curlybracket{-\dfrac{1}{a\cos\theta}\pdifop{\theta}\bracketnormal{v^2\cos\theta}-\pdifop{z}\bracketnormal{wv}-fu-\dfrac{u^2\tan\theta}{a} -\dfrac{1}{a}\pdif{\Phi}{\theta} + \pdifop{z}\bracketnormal{\nu\pdif{v}{z}}}
+}
+
+ただし$v^\text{out} = v^{n+1}\;\text{or}\;v^*$であり、右辺の$u,v,w,\frac{\partial \Phi}{\partial \theta}$には$u^n,v^n,w^n,\bracketnormal{\frac{\partial \Phi}{\partial \theta}}^n$ないし$u^*,v^*,w^*,\bracketnormal{\frac{\partial \Phi}{\partial \theta}}^*$が入る。その上で、上式をセル左辺で評価すると次のようになる。
+\neqns{l}{
+  v_{jk}^\text{out} = v_{jk}^n + \Delta t\Bigg\{-\dfrac{1}{a\cos\dfrac{\theta_{j-1}+\theta_{j}}{2}}\dfrac{\bracketnormal{\dfrac{v_{jk}+v_{j+1,k}}{2}}^2\cos\theta_j - \bracketnormal{\dfrac{v_{j-1,k}+v_{jk}}{2}}^2\cos\theta_{j-1} }{\Delta\theta}\\[5pt]
+  \qquad\qquad\qquad\qquad - \dfrac{\dfrac{w_{j-1,k+1}+w_{j,k+1}}{2}\dfrac{v_{j,k+1}+v_{jk}}{2}-\dfrac{w_{j-1,k}+w_{jk}}{2}\dfrac{v_{jk}+v_{j,k-1}}{2}}{\Delta z}\\[5pt]
+  \qquad\qquad\qquad\qquad-2\Omega\bracketnormal{\sin\dfrac{\theta_{j-1}+\theta_{j}}{2}}\dfrac{u_{jk}+u_{j-1,k}}{2}-\dfrac{\bracketnormal{\dfrac{u_{jk}+u_{j-1,k}}{2}}^2\tan\dfrac{\theta_{j-1}+\theta_{j}}{2}}{a}\\[5pt]
+  \qquad\qquad\qquad\qquad -\dfrac{1}{a}\dfrac{\bracketnormal{\pdif{\Phi}{\theta}}_{j-1,k}+\bracketnormal{\pdif{\Phi}{\theta}}_{j-1,k+1}+\bracketnormal{\pdif{\Phi}{\theta}}_{jk}+\bracketnormal{\pdif{\Phi}{\theta}}_{j,k+1}}{4}\\[5pt]
+  \qquad\qquad\qquad\qquad +\dfrac{\nu}{\Delta z}\bracketnormal{\dfrac{v_{j,k+1}-v_{jk}}{\Delta z} - \dfrac{v_{jk}-v_{j,k-1}}{\Delta z}}\Bigg\}
+}
+
+ただし、極（すなわち$j=0$と$j=j_\text{max}$）では上式において$\cos\frac{\theta_{j-1}+\theta_{j}}{2}=0$となり式が特異となってしまうため、この点においては$v^\text{out}_{jk}=0$と定めることにする。\footnote{
+  直感的には、極を横切る南北流（反対の半球の子午面からまわってくる流れ）は$0$であって欲しいので。
+}よって、$v$を更新するルーチンをupdate\_vのように定めればいい。
+
+\vs{0.5}
+
+\begin{algorithm}[H]
+  \caption*{\textbf{subroutine:} update\_v}
+  \begin{algorithmic}[1]
+    \Require $\theta[0:j_\text{max}]$、$u^\text{in}[0:j_\text{max}-1,0:k_\text{max}-1]$、$v^\text{in}[0:j_\text{max},-1:k_\text{max}]$、$w^\text{in}[0:j_\text{max}-1,0:k_\text{max}]$,$\bracketnormal{\frac{\partial\Phi}{\partial\theta}}^\text{in}[0:j_\text{max}-1,0:k_\text{max}]$、$v^n[0:j_\text{max},0:k_\text{max}-1]$
+    \Ensure $v^\text{out}[0:j_\text{max},0:k_\text{max}-1]$
+    \Statex
+    \Do{$j=1,j_\text{max}-1$}
+    \Do{$k=0,k_\text{max}-1$}
+      \State $\begin{aligned}[t]
+        &v_{jk}^\text{out} = v_{jk}^n + \Delta t\Bigg\{-\dfrac{1}{a\cos\dfrac{\theta_{j-1}+\theta_{j}}{2}}\dfrac{\bracketnormal{\dfrac{v^\text{in}_{jk}+v^\text{in}_{j+1,k}}{2}}^2\cos\theta_j - \bracketnormal{\dfrac{v^\text{in}_{j-1,k}+v^\text{in}_{jk}}{2}}^2\cos\theta_{j-1} }{\Delta\theta}\\[5pt]
+        &\qquad\qquad\qquad\qquad - \dfrac{\dfrac{w^\text{in}_{j-1,k+1}+w^\text{in}_{j,k+1}}{2}\dfrac{v^\text{in}_{j,k+1}+v^\text{in}_{jk}}{2}-\dfrac{w^\text{in}_{j-1,k}+w^\text{in}_{jk}}{2}\dfrac{v^\text{in}_{jk}+v^\text{in}_{j,k-1}}{2}}{\Delta z}\\[5pt]
+        &\qquad\qquad\qquad\qquad-2\Omega\bracketnormal{\sin\dfrac{\theta_{j-1}+\theta_{j}}{2}}\dfrac{u^\text{in}_{jk}+u^\text{in}_{j-1,k}}{2}-\dfrac{\bracketnormal{\dfrac{u^\text{in}_{jk}+u^\text{in}_{j-1,k}}{2}}^2\tan\dfrac{\theta_{j-1}+\theta_{j}}{2}}{a}\\[5pt]
+        &\qquad\qquad\qquad\qquad -\dfrac{1}{a}\dfrac{\bracketnormal{\pdif{\Phi}{\theta}}^\text{in}_{j-1,k}+\bracketnormal{\pdif{\Phi}{\theta}}^\text{in}_{j-1,k+1}+\bracketnormal{\pdif{\Phi}{\theta}}^\text{in}_{jk}+\bracketnormal{\pdif{\Phi}{\theta}}^\text{in}_{j,k+1}}{4}\\[5pt]
+        &\qquad\qquad\qquad\qquad +\dfrac{\nu}{\Delta z}\bracketnormal{\dfrac{v^\text{in}_{j,k+1}-v^\text{in}_{jk}}{\Delta z} - \dfrac{v^\text{in}_{jk}-v^\text{in}_{j,k-1}}{\Delta z}}\Bigg\}
+      \end{aligned}$
+    \EndDo
+    \EndDo
+    \State \Comment{極における例外処理}
+    \Do{$k=0,k_\text{max}-1$}
+    \State $v^\text{out}_{0k}=0$
+    \State $v^\text{out}_{j_\text{max},k}=0$
+    \EndDo
+
+  \end{algorithmic}
+\end{algorithm}
+
+\subsection{\texorpdfstring{$\hat{\Theta}$の計算}{温位の計算}}
+
+　$\hat{\Theta}$の更新式は次のようになる。
+
+\neqn{
+  \hat{\Theta}^\text{out} = \hat{\Theta}^n + \Delta t\curlybracket{-\dfrac{1}{a\cos\theta}\pdifop{\theta}\bracketnormal{v\hat{\Theta}\cos\theta}-\pdifop{z}\bracketnormal{w\hat{\Theta}} - \bracketnormal{\hat{\Theta} - \hat{\Theta}_E}\tau^{-1} + \pdifop{z}\bracketnormal{\nu\pdif{\hat{\Theta}}{z}}}
+}
+
+ただし$\hat{\Theta}^\text{out} = \hat{\Theta}^{n+1}\;\text{or}\;\hat{\Theta}^*$であり、右辺の$v,w,\hat{\Theta}$には$v^n,w^n,\hat{\Theta}^n$ないし$v^*,w^*,\hat{\Theta}^*$が入る。その上で、上式をセル中心で評価すると次のようになる。
+\neqns{l}{
+  \hat{\Theta}^\text{out}_{jk} = \hat{\Theta}^n_{jk} + \Delta t\Bigg\{-\dfrac{1}{a\cos\theta_j}\dfrac{\dfrac{\hat{\Theta}_{jk}+\hat{\Theta}_{j+1,k}}{2}v_{j+1,k}\cos\dfrac{\theta_{j+1}+\theta_{j}}{2}-\dfrac{\hat{\Theta}_{j-1,k}+\hat{\Theta}_{j,k}}{2}v_{j,k}\cos\dfrac{\theta_{j}+\theta_{j-1}}{2}}{\Delta \theta}\\[5pt]
+  \qquad\qquad\qquad\qquad - \dfrac{\dfrac{\hat{\Theta}_{jk}+\hat{\Theta}_{j,k+1}}{2}w_{j,k+1}-\dfrac{\hat{\Theta}_{j,k-1}+\hat{\Theta}_{j,k}}{2}w_{j,k}}{\Delta z}-\bracketnormal{\hat{\Theta}_{jk}-\hat{\Theta}_{Ejk}}\tau^{-1}\\[5pt]
+  \qquad\qquad\qquad\qquad + \dfrac{\nu}{\Delta z}\bracketnormal{\dfrac{\hat{\Theta}_{j,k+1}-\hat{\Theta}_{jk}}{\Delta z}-\dfrac{\hat{\Theta}_{jk}-\hat{\Theta}_{j,k-1}}{\Delta z}}\Bigg\}
+}
+
+よって、$\hat{\Theta}$を更新するルーチンをupdate\_potential\_temperatureのように定めればいい。
+
+
+
+\vs{0.5}
+
+\begin{algorithm}[H]
+  \caption*{\textbf{subroutine:} update\_potential\_temperature}
+  \begin{algorithmic}[1]
+    \Require $\hat{\Theta}^\text{in}[-1:j_\text{max},-1:k_\text{max}]$、$\hat{\Theta}_E[0:j_\text{max}-1,0:k_\text{max}-1]$、$\hat{\Theta}^n[0:j_\text{max}-1,0:k_\text{max}-1]$、$v^\text{in}[0:j_\text{max},0:k_\text{max}-1]$、$w^\text{in}[0:j_\text{max}-1,0:k_\text{max}]$
+    \Ensure $\hat{\Theta}^\text{out}[0:j_\text{max}-1,0:k_\text{max}-1]$
+    \Statex
+    \Do{$j=0,j_\text{max}-1$}
+    \Do{$k=0,k_\text{max}-1$}
+    \State $\begin{aligned}
+      &\hat{\Theta}^\text{out}_{jk} = \hat{\Theta}^n_{jk} + \Delta t\Bigg\{-\dfrac{1}{a\cos\theta_j}\dfrac{\dfrac{\hat{\Theta}_{jk}+\hat{\Theta}_{j+1,k}}{2}v_{j+1,k}\cos\dfrac{\theta_{j+1}+\theta_{j}}{2}-\dfrac{\hat{\Theta}_{j-1,k}+\hat{\Theta}_{j,k}}{2}v_{j,k}\cos\dfrac{\theta_{j}+\theta_{j-1}}{2}}{\Delta \theta}\\[5pt]
+      &\qquad\qquad\qquad\qquad - \dfrac{\dfrac{\hat{\Theta}_{jk}+\hat{\Theta}_{j,k+1}}{2}w_{j,k+1}-\dfrac{\hat{\Theta}_{j,k-1}+\hat{\Theta}_{j,k}}{2}w_{j,k}}{\Delta z}-\bracketnormal{\hat{\Theta}_{jk}-\hat{\Theta}_{Ejk}}\tau^{-1}\\[5pt]
+      &\qquad\qquad\qquad\qquad + \dfrac{\nu}{\Delta z}\bracketnormal{\dfrac{\hat{\Theta}_{j,k+1}-\hat{\Theta}_{jk}}{\Delta z}-\dfrac{\hat{\Theta}_{jk}-\hat{\Theta}_{j,k-1}}{\Delta z}}\Bigg\}
+    \end{aligned}$
+    \EndDo
+    \EndDo
+  \end{algorithmic}
+\end{algorithm}
+
 \subsection{\texorpdfstring{$w$の計算}{wの計算}}
 
 　今、$w$は次のように計算されるのであった。
@@ -437,7 +561,7 @@
   w_{jk} = \dsum_{k'=0}^{k-1}\left[\Delta z \curlybracket{-\dfrac{1}{a\cos\theta_j}\dfrac{v_{j+1,k'}\cos\bracketnormal{\dfrac{\theta_{j+1}+\theta_{j}}{2}}-v_{j,k'}\cos\bracketnormal{\dfrac{\theta_{j}+\theta_{j-1}}{2}}}{\Delta \theta}}\right]
 }
 
-よって、$w$を計算するルーチンを次のように定義すれば良い。
+よって、$w$を計算するルーチンを次のように定義すれば良い。ただし入力変数に必要なメモリの範囲は、予報変数$u,v,\hat{\Theta}$の計算に必要な$w$のメモリ分から逆算している。
 \vs{0.5}
 
 \begin{algorithm}[!htbp]
@@ -486,7 +610,7 @@
 
 \vs{0.5}
 
-\begin{algorithm}[!htbp]
+\begin{algorithm}[H]
   \caption*{\textbf{subroutine:} calculate\_partial\_Phi}
   \begin{algorithmic}[1]
     \Require $\theta[-2:j_\text{max}+1]$、$u[-1:j_\text{max},0:k_\text{max}-1]$、$v[-1:j_\text{max}+1,-1:k_\text{max}]$、$\hat{\Theta}[-2,j_\text{max}+1,0:k_\text{max}-1]$、$w[-1:j_\text{max},0:k_\text{max}]$
@@ -525,20 +649,6 @@
   \end{algorithmic}
 \end{algorithm}
 
-\subsection{\texorpdfstring{$u$の更新}{uの計算}}
-
-　$u$の更新式は次のようになる。
-
-\neqn{
-  u^\text{out} = u^n + \Delta t\bracketnormal{-\dfrac{1}{a\cos\theta}\pdifop{\theta}\bracketnormal{vu\cos\theta}-\pdifop{z}\bracketnormal{wu}+fv+\dfrac{uv\tan\theta }{a}+\pdifop{z}\bracketnormal{\nu \pdif{u}{z}}}
-}
-
-ただし$u^\text{out} = u^{n+1}\;\text{or}\;u^*$であり、右辺の$u,v,w$には$u^n,v^n,w^n$ないし$u^*,v^*,w^*$が入る。その上で、上式をセル中心で評価すると次のようになる。
-
-\neqns{l}{
-  u_{jk}^\text{out} = u^n_{jk} + \Delta t\Bigg\{-\dfrac{1}{a\cos\theta_j}\dfrac{\dfrac{u_{jk}+u_{j+1,k}}{2}v_{j+1,k}\cos\dfrac{\theta_{j+1}+\theta_{j}}{2}-\dfrac{u_{j-1,k}+u_{j,k}}{2}v_{j,k}\cos\dfrac{\theta_{j}+\theta_{j-1}}{2}}{\Delta \theta} \\[5pt]
-  \qquad\qquad - \dfrac{\dfrac{u_{jk}+u_{j,k+1}}{2}w_{j,k+1}-\dfrac{u_{j,k-1}+u_{j,k}}{2}w_{j,k}}{\Delta z} + 2\Omega\sin\theta_j\dfrac{v_{jk}+v_{j+1,k}}{2}\Bigg\}
-}
 
 \subsection{境界の外側のセルの更新}
 
