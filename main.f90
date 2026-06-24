@@ -10,9 +10,9 @@ module parameters_and_variables_for_simulation
         real(8),parameter :: z_max=8.0d3 !子午面の高さ[m]
         integer,parameter :: j_max=180 !緯度方向の格子数
         integer,parameter :: k_max=50 !z方向の格子数
-        real(8),parameter :: delta_t = 100.0d0 !時間積分間隔[s]
-        real(8),parameter :: max_t = 1.0d0 * 86400.0d0 !時間積分の打ち切り時間[s],day * 86400.0d0
-        integer,parameter :: outstep_interval = 20
+        real(8),parameter :: delta_t = 50.0d0 !時間積分間隔[s]
+        real(8),parameter :: max_t = 100.0d0 * 86400.0d0 !時間積分の打ち切り時間[s],day * 86400.0d0
+        integer,parameter :: outstep_interval = 2000
 
         real(8),parameter :: a = 6.4d6!地球半径[m]
         real(8),parameter :: Omega = 2.0d0*pi/8.64d4 !自転
@@ -47,6 +47,7 @@ module parameters_and_variables_for_simulation
         real(8),allocatable :: Phi_diff(:,:) !ポテンシャルPhiのtheta微分
         real(8),allocatable :: theta(:) !緯度
         real(8),allocatable :: z(:) !高度
+        real(8),allocatable :: stream_func(:,:)
 
     !
 
@@ -69,6 +70,7 @@ module parameters_and_variables_for_simulation
         allocate(Phi_diff(0:j_max-1,0:k_max))
         allocate(theta(-1:j_max))
         allocate(z(0:k_max-1))
+        allocate(stream_func(0:j_max-1,0:k_max))
 
         do j = lbound(theta,1),ubound(theta,1)
             theta(j) = -pi/2.0d0 + (j+0.5d0)*dtheta
@@ -121,6 +123,7 @@ module initialization
         pot_temp_mid = 0.0d0
         w = 0.0d0
         Phi_diff = 0.0d0
+        stream_func = 0.0d0
     end subroutine initialize_field
 end module initialization
 
@@ -296,8 +299,8 @@ module update_boundary
         integer :: j,k
 
         do k=0,k_max-1
-            u_in(-1,k) = u_in(0,k)
-            u_in(j_max,k) = u_in(j_max-1,k)
+            u_in(-1,k) = -u_in(0,k)
+            u_in(j_max,k) = -u_in(j_max-1,k)
         end do
 
         do j=-1,j_max
@@ -351,22 +354,39 @@ module output_module
         call execute_command_line("mkdir -p ./dataout")
     end subroutine initiate_directory
 
+    subroutine calculate_stream_function(v_in)
+        implicit none
+        real(8),intent(in) :: v_in(0:j_max,-1:k_max)
+        integer :: j,k
+        real(8) :: val
+
+        do j = 0,j_max-1
+            val = 0.0d0
+            do k = 0,k_max
+                stream_func(j,k) = val
+                if (k==k_max) exit
+                val = val -0.5d0*(v_in(j,k)+v_in(j+1,k))*cos(theta(j))*dz
+            end do
+        end do
+
+    end subroutine calculate_stream_function
+
     subroutine write_data(time,output_step,timestep)
         implicit none
         real(8),intent(in) :: time
         integer,intent(in) :: output_step,timestep
         write(filename,fmt='("./dataout/hadley",i6.6,".dat")') output_step
         open(10,file=filename,status='replace',action='write')
-        write(10,*) "# time[s]"
-        write(10,*) time
-        write(10,*) "# calculation step"
-        write(10,*) timestep
-        write(10,*) "# theta[rad],z[m],u[m/s],v[m/s],w[m/s],potential_temperature"
-        
+        write(10,*) "# time[s]",time
+        write(10,*) "# calculation step",timestep
+        write(10,*) "# theta[rad],z[m],u[m/s],v[m/s],w[m/s],potential_temperature,stream_function"
+        !セル中央での値を出力する！
         do k=0,k_max-1
         do j=0,j_max-1
-            write(10,*) theta(j),z(k),u(j,k),0.5d0*(v(j,k)+v(j+1,k)),0.5d0*(w(j,k)+w(j,k+1)),pot_temp(j,k)
+            write(10,*) theta(j),z(k),u(j,k),0.5d0*(v(j,k)+v(j+1,k)),&
+            & 0.5d0*(w(j,k)+w(j,k+1)),pot_temp(j,k),0.5d0*(stream_func(j,k)+stream_func(j,k+1))
         end do
+        write(10,*)" "
         end do
 
         close(10)
@@ -401,6 +421,7 @@ program main
         call calculate_w(v)
             !出力
             if (mod(timestep,outstep_interval)==1) then
+                call calculate_stream_function(v_in=v)
                 outstep = outstep + 1
                 write(*,'(f4.1,A,i4)') real(timestep-1,8)*100.0/real(timestep_max,8),"%, outputstep=",outstep
                 time = delta_t * (timestep-1)

@@ -783,12 +783,12 @@
   d\Psi = \pdif{\Psi}{\theta}d\theta + \pdif{\Psi}{z}dz = 0 \; \leadsto \; \dif{z}{\theta} = -\dfrac{\pdif{\Psi}{\theta}}{\pdif{\Psi}{z}}
 }
 
-同時に今、$\bracketnormal{d\theta ,dz}^T$の三次元空間上でのベクトル$d\vect{l} = ad\theta\vect{e}_\theta + dz\vect{e}_z$が流れ$\vect{v} = vd\theta + wdz$\footnote{
+同時に今、$\bracketnormal{d\theta ,dz}^T$の三次元空間上でのベクトル$d\vect{l} = ad\theta\vect{e}_\theta + dz\vect{e}_z$が流れ$\vect{v} = v\vect{e}_\theta + w\vect{e}_z$\footnote{
   $v$はあくまで「南北」流！
 }と平行でなければならないので次が成立する。
 
 \neqn{
-  ad\theta\vect{e}_\theta + dz\vect{e}_z \parallel vd\theta + wdz\;\leadsto \; \dif{z}{\theta} = \dfrac{aw}{v}
+  ad\theta\vect{e}_\theta + dz\vect{e}_z \parallel v\vect{e}_\theta + w\vect{e}_z\;\leadsto \; \dif{z}{\theta} = \dfrac{aw}{v}
 }
 
 よって二つの条件を見比べれば、流線関数$\Psi$について次が成立していなければならない。
@@ -806,7 +806,7 @@
 そこで、非発散条件を思い出してみると、（整理することで）以下のようになる。
 
 \neqn{
-  \dfrac{1}{a}\pdifop{\theta}\bracketnormal{v\cos\theta} + \pdifop{z}\bracketnormal{w\cos\theta}
+  \dfrac{1}{a}\pdifop{\theta}\bracketnormal{v\cos\theta} + \pdifop{z}\bracketnormal{w\cos\theta}=0
 }
 
 よって上二式を見比べると$M=\cos\theta$となっていれば良いだろうとわかる。よって流線関数は次を満たす。
@@ -831,8 +831,29 @@
 と計算できる。よっていま、$\Psi_{jk}$を$w,\Phi$と同様に$jk$番目のセルの下辺に保持することにすれば、$\Psi_{jk}$の計算スキームは次のようになる。
 
 \neqn{
-  \Psi_{jk} = \dsum_{k'=0}^{k-1} \bracketnormal{-\dfrac{v_{jk}+v_{j+1,k}}{2}\cos\theta_j\Delta z}
+  \Psi_{jk} = \dsum_{k'=0}^{k-1} \bracketnormal{-\dfrac{v_{jk'}+v_{j+1,k'}}{2}\cos\theta_j\Delta z}
 }
+
+よって次のようなルーチンを実装すれば良い。
+\vs{0.5}
+
+\begin{algorithm}[H]
+  \caption*{\textbf{subroutine:} calculate\_stream\_function}
+  \begin{algorithmic}[1]
+    \Require $v[0:j_\text{max},0:k_\text{max}-1]$
+    \Ensure $\Psi[0:j_\text{max}-1,0:k_\text{max}]$
+    \Statex
+    \Do{$j=0,j_\text{max}-1$}
+    \State $\text{val}=0$
+    \Do{$k=0,k_\text{max}$}
+    \State $\Psi_{jk}=\text{val}$
+    \State if $k=k_\text{max}$ exit
+    \State $\text{val}=\text{val}+\bracketnormal{-\dfrac{v_{jk}+v_{j+1,k}}{2}\cos\theta_j\Delta z}$
+    \EndDo
+    \EndDo
+    
+  \end{algorithmic}
+\end{algorithm}
 
 
 
