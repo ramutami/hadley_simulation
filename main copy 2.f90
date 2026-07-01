@@ -11,7 +11,7 @@ module parameters_and_variables_for_simulation
         integer,parameter :: j_max=180 !緯度方向の格子数
         integer,parameter :: k_max=50 !z方向の格子数
         real(8),parameter :: delta_t = 200.0d0 !時間積分間隔[s]
-        real(8),parameter :: max_t = 365.0d0 * 86400.0d0 !時間積分の打ち切り時間[s],day * 86400.0d0
+        real(8),parameter :: max_t = 15d0 * 86400.0d0 !時間積分の打ち切り時間[s],day * 86400.0d0
         integer,parameter :: outstep_interval = 100
 
         real(8),parameter :: a = 6.4d6!地球半径[m]
@@ -48,7 +48,6 @@ module parameters_and_variables_for_simulation
         real(8),allocatable :: theta(:) !緯度
         real(8),allocatable :: z(:) !高度
         real(8),allocatable :: stream_func(:,:)
-        real(8),allocatable :: v_integral(:)
 
     !
 
@@ -68,12 +67,10 @@ module parameters_and_variables_for_simulation
         allocate(pot_temp_temporal(-1:j_max,-1:k_max))
         allocate(pot_temp_E(0:j_max-1,0:k_max-1))
         allocate(w(0:j_max-1,0:k_max))
-        allocate(Phi_diff(1:j_max-1,0:k_max-1))
+        allocate(Phi_diff(0:j_max-1,0:k_max))
         allocate(theta(-1:j_max))
         allocate(z(0:k_max-1))
         allocate(stream_func(0:j_max-1,0:k_max))
-        allocate(v_integral(0:j_max))
-
 
         do j = lbound(theta,1),ubound(theta,1)
             theta(j) = -pi/2.0d0 + (j+0.5d0)*dtheta
@@ -166,7 +163,7 @@ module update_variables
         real(8),intent(in) :: u_in(-1:j_max,-1:k_max) 
         real(8),intent(in) :: v_in(0:j_max,-1:k_max)
         real(8),intent(in) :: w_in(0:j_max-1,0:k_max)
-        real(8),intent(in) :: Phi_diff_in(1:j_max-1,0:k_max-1)
+        real(8),intent(in) :: Phi_diff_in(0:j_max-1,0:k_max)
         real(8),intent(in) :: v_n(0:j_max,-1:k_max)
         real(8),intent(out) :: v_out(0:j_max,-1:k_max)
 
@@ -179,7 +176,9 @@ module update_variables
                 term2 = -1.0d0 * (0.5d0*(w_in(j-1,k+1) + w_in(j,k+1))*0.5d0*(v_in(j,k+1)+v_in(j,k))-0.5d0*(w_in(j-1,k) + w_in(j,k))*0.5d0*(v_in(j,k)+v_in(j,k-1)))/dz
                 term3 = -2.0d0*Omega*sin(0.5d0*(theta(j-1)+theta(j))) * 0.5d0*(u_in(j,k)+u_in(j-1,k))
                 term4 = -1.0d0 * (0.5d0*(u_in(j,k) + u_in(j-1,k)))**2 * tan(0.5d0*(theta(j-1)+theta(j)))/a
-                term5 = -1.0d0/a * Phi_diff_in(j,k)
+                
+                term5 = -1.0d0/a/4.0d0 * (Phi_diff_in(j-1,k) + Phi_diff_in(j-1,k+1) + Phi_diff_in(j,k) + Phi_diff_in(j,k+1))
+                
                 term6 = nu/dz/dz * (v_in(j,k+1)-v_in(j,k)-v_in(j,k)+v_in(j,k-1))
                 v_out(j,k) = v_n(j,k) + delta_t * (term1 + term2 + term3 + term4 + term5 + term6)
             end do
@@ -253,33 +252,34 @@ module calculate_variables
         integer :: j,k
         real(8) :: integral,term3,term1
         real(8) :: val1,val2,val3,val4,val5
-        real(8) :: pot_temp_integral(1:j_max-1,0:k_max-1)
+        real(8) :: pot_temp_integral(0:j_max-1,0:k_max)
 
-        do j = 1,j_max-1
+        do j = 0,j_max-1
             integral = 0.0d0
-            do k = 0,k_max-1
-                pot_temp_integral(j,k) = integral + 0.5d0*dz*g*(pot_temp_in(j,k)-pot_temp_in(j-1,k))/dtheta
-                integral = integral + dz*g*(pot_temp_in(j,k)-pot_temp_in(j-1,k))/dtheta
+            do k = 0,k_max
+                pot_temp_integral(j,k) = integral
+                if (k == k_max) exit
+                integral = integral + dz*g*(pot_temp_in(j+1,k)-pot_temp_in(j-1,k))/2.0d0/dtheta
             end do
 
             term3 = 0.0d0
             do k = 0,k_max-1
-                term3 = term3 + dz* pot_temp_integral(j,k)
+                term3 = term3 + dz*0.5d0 * (pot_temp_integral(j,k) + pot_temp_integral(j,k+1))
             end do
             term3 = -1.0d0*term3/H
 
             term1 = 0.0d0
             do k = 0,k_max-1
-                val1 = -1.0d0/(a*cos(0.5d0*(theta(j)+theta(j-1)))) * ((0.5d0*(v_in(j,k)+v_in(j+1,k)))**2 * cos(theta(j)) - (0.5d0*(v_in(j-1,k)+v_in(j,k)))**2 * cos(theta(j-1)))/dtheta
-                val2 = -1.0d0/dz*(0.25d0*(w_in(j-1,k+1)+w_in(j,k+1))*(v_in(j,k+1)+v_in(j,k)) -0.25d0*(w_in(j-1,k)+w_in(j,k))*(v_in(j,k)+v_in(j,k-1)))
-                val3 = -2.0d0*Omega*sin(0.5d0*(theta(j-1)+theta(j)))*0.5d0*(u_in(j,k)+u_in(j-1,k))
-                val4 = -1.0d0*(0.5d0*(u_in(j,k)+u_in(j-1,k)))**2*tan(0.5d0*(theta(j-1)+theta(j)))/a
-                val5 = nu/dz/dz*(v_in(j,k+1)-v_in(j,k) - v_in(j,k)+v_in(j,k-1))
+                val1 = -1.0d0/(a*cos(theta(j))) * (v_in(j+1,k)**2 * cos(0.5d0*(theta(j)+theta(j+1))) - v_in(j,k)**2 * cos(0.5d0*(theta(j-1)+theta(j))))/dtheta
+                val2 = -1.0d0/dz*(w_in(j,k+1)*0.25d0*(v_in(j,k)+v_in(j+1,k)+v_in(j,k+1)+v_in(j+1,k+1)) - w_in(j,k)*0.25d0*(v_in(j,k-1)+v_in(j+1,k-1)+v_in(j,k)+v_in(j+1,k)))
+                val3 = -2.0d0*Omega*sin(theta(j))*u_in(j,k)
+                val4 = -1.0d0*u_in(j,k)**2*tan(theta(j))/a
+                val5 = nu/dz/dz*(0.5d0*(v_in(j,k+1)+v_in(j+1,k+1))-0.5d0*(v_in(j,k)+v_in(j+1,k)) - 0.5d0*(v_in(j,k)+v_in(j+1,k)) + 0.5d0*(v_in(j,k-1)+v_in(j+1,k-1)))
                 term1 = term1 + dz*(val1+val2+val3+val4+val5)
             end do
             term1 = term1 * a/H
 
-            do k = 0,k_max-1
+            do k = 0,k_max
                 Phi_diff(j,k) = term1 + term3 + pot_temp_integral(j,k)
             end do
 
@@ -301,8 +301,8 @@ module update_boundary
         integer :: j,k
 
         do k=0,k_max-1
-            u_in(-1,k) = -u_in(0,k)
-            u_in(j_max,k) = -u_in(j_max-1,k)
+            u_in(-1,k) = u_in(0,k)
+            u_in(j_max,k) = u_in(j_max-1,k)
         end do
 
         do j=-1,j_max
