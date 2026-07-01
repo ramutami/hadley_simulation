@@ -1,9 +1,15 @@
 # fortranファイルの出力を見て、ここを書き換えること！
     first_filenum = 1
-    last_filenum = 1577
+    last_filenum = 300
 #
 
-
+# 変数の受け渡し
+    if (!exists("nu")) nu = "unknown"
+    nu_tag = nu
+    nu_tag = system(sprintf("echo %s | sed 's/\\./p/g'", nu))
+    video_dir = sprintf("../videoout/nu%s", nu_tag)
+    system(sprintf("mkdir -p %s", video_dir))
+#
 
 # stream_func
     reset
@@ -23,14 +29,14 @@
     set contour base
 
     set view 0,0
-    set cntrparam levels incremental -5000,500,5000
+    set cntrparam levels 20
     unset key
     set colorbox
     set cblabel "流線関数"
 
 
     set terminal pngcairo size 800,600 
-    set size ratio 0.75
+    set size ratio 0.50
 
     set palette defined ( \
         -1 "blue",\
@@ -80,14 +86,9 @@
         print sprintf("plotting stream func %d / %d", n, last_filenum)
     }
 
-    system("rm ../videoout/stream_func.mp4")
-    system("ffmpeg -framerate 10 \
-    -i ../imageout/stream%06d.png \
-    -c:v libx264 \
-    -pix_fmt yuv420p \
-    -movflags +faststart \
-    ../videoout/stream_func.mp4")
-
+    video_name = sprintf("%s/stream_func.mp4", video_dir)
+    system(sprintf("rm -f %s", video_name))
+    system(sprintf("ffmpeg -framerate 10 -i ../imageout/stream%%06d.png -c:v libx264 -pix_fmt yuv420p -movflags +faststart %s", video_name))
     system("rm -r ../imageout/*")
     # system("rm -r ../dataout/*")
 #
@@ -96,7 +97,7 @@
     
     system("rm -rf ../imageout/*")
 
-    set cntrparam levels incremental -20,5,60
+    #set cntrparam levels incremental -100,5,100
     set cblabel "東西流速[m/s]"
 
 
@@ -148,13 +149,9 @@
         print sprintf("plotting westerlies %d / %d", n, last_filenum)
     }
 
-    system("rm ../videoout/westerlies.mp4")
-    system("ffmpeg -framerate 10 \
-    -i ../imageout/westerlies%06d.png \
-    -c:v libx264 \
-    -pix_fmt yuv420p \
-    -movflags +faststart \
-    ../videoout/westerlies.mp4")
+    video_name = sprintf("%s/westerlies.mp4", video_dir)
+    system(sprintf("rm -f %s", video_name))
+    system(sprintf("ffmpeg -framerate 10 -i ../imageout/westerlies%%06d.png -c:v libx264 -pix_fmt yuv420p -movflags +faststart %s", video_name))
 
     system("rm -r ../imageout/*")
     # system("rm -r ../dataout/*")
@@ -163,7 +160,7 @@
 # 南北流速
     system("rm -rf ../imageout/*")
 
-    set cntrparam levels incremental -10,1,10
+    set cntrparam levels incremental -20,0.5,20
     set cblabel "南北流速[m/s]"
 
 
@@ -214,13 +211,9 @@
         print sprintf("plotting southwind %d / %d", n, last_filenum)
     }
 
-    system("rm ../videoout/southwind.mp4")
-    system("ffmpeg -framerate 10 \
-    -i ../imageout/southwind%06d.png \
-    -c:v libx264 \
-    -pix_fmt yuv420p \
-    -movflags +faststart \
-    ../videoout/southwind.mp4")
+    video_name = sprintf("%s/southwind.mp4", video_dir)
+    system(sprintf("rm -f %s", video_name))
+    system(sprintf("ffmpeg -framerate 10 -i ../imageout/southwind%%06d.png -c:v libx264 -pix_fmt yuv420p -movflags +faststart %s", video_name))
 
     system("rm -r ../imageout/*")
     # system("rm -r ../dataout/*")
@@ -229,7 +222,8 @@
 # 鉛直流
     system("rm -rf ../imageout/*")
 
-    set cntrparam levels incremental -0.01,0.001,0.01
+    #set cntrparam levels incremental -0.02,0.001,0.02
+    set cntrparam levels 20
     set cblabel "鉛直流[m/s]"
 
 
@@ -280,23 +274,18 @@
         print sprintf("plotting upward %d / %d", n, last_filenum)
     }
 
-    system("rm ../videoout/upward.mp4")
-    system("ffmpeg -framerate 10 \
-    -i ../imageout/upward%06d.png \
-    -c:v libx264 \
-    -pix_fmt yuv420p \
-    -movflags +faststart \
-    ../videoout/upward.mp4")
+    video_name = sprintf("%s/upward.mp4", video_dir)
+    system(sprintf("rm -f %s", video_name))
+    system(sprintf("ffmpeg -framerate 10 -i ../imageout/upward%%06d.png -c:v libx264 -pix_fmt yuv420p -movflags +faststart %s", video_name))
 
     #system("rm -r ../imageout/*")
     # system("rm -r ../dataout/*")
 #
 
-
 # 温位
     system("rm -rf ../imageout/*")
 
-    set cntrparam levels incremental 0.5,0.05,1.15
+    set cntrparam levels incremental 0.3,0.05,1.2
     set cblabel "正規化された温位"
 
 
@@ -347,18 +336,36 @@
         print sprintf("plotting upwardwind %d / %d", n, last_filenum)
     }
 
-    system("rm ../videoout/pottemp.mp4")
-    system("ffmpeg -framerate 10 \
-    -i ../imageout/pottemp%06d.png \
-    -c:v libx264 \
-    -pix_fmt yuv420p \
-    -movflags +faststart \
-    ../videoout/pottemp.mp4")
+    video_name = sprintf("%s/pottemp.mp4", video_dir)
+    system(sprintf("rm -f %s", video_name))
+    system(sprintf("ffmpeg -framerate 10 -i ../imageout/pottemp%%06d.png -c:v libx264 -pix_fmt yuv420p -movflags +faststart %s", video_name))
 
     #system("rm -r ../imageout/*")
     #system("rm -r ../dataout/*")
 #
 
+# v鉛直積分
+
+    set terminal pngcairo size 800,600      
+
+    image_name = sprintf("%s/integral.png", video_dir)
+    set output image_name
+    set title 'vの鉛直積分' 
+
+    set xrange [*:*]
+    set yrange [*:*]
+    set xtics auto
+    set ytics auto
+    set grid
+    set ylabel 'vの鉛直積分 |∫v dz|' 
+    set xlabel '時間 [day]' 
+    set logscale y
+    set yrange
+    set size ratio 0.5
+    set format y "%.1t×10^{%L}"
+
+    plot '../dataout/v_integral.dat' using 1:2 every ::1 with lines lc 'black' lw 1 notitle
+#
 
 
 

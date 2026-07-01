@@ -6,12 +6,12 @@ module parameters_and_variables_for_simulation
         !global定数：すべてのmoduleのsubroutineで参照可能な変数
 
         !------------change allowed--------------!
-        real(8) :: nu = 20.0d0 !粘性、色々変えたりする。
+        real(8) :: nu = 25.0d0 !粘性、色々変えたりする。
         real(8),parameter :: z_max=8.0d3 !子午面の高さ[m]
         integer,parameter :: j_max=180 !緯度方向の格子数
         integer,parameter :: k_max=50 !z方向の格子数
         real(8),parameter :: delta_t = 200.0d0 !時間積分間隔[s]
-        real(8),parameter :: max_t = 365.0d0 * 86400.0d0 !時間積分の打ち切り時間[s],day * 86400.0d0
+        real(8),parameter :: max_t = 70.0d0 * 86400.0d0 !時間積分の打ち切り時間[s],day * 86400.0d0
         integer,parameter :: outstep_interval = 100
 
         real(8),parameter :: a = 6.4d6!地球半径[m]
@@ -27,6 +27,7 @@ module parameters_and_variables_for_simulation
         real(8),parameter :: dtheta  = pi/real(j_max,8) !緯度方向の格子幅Delta_theta
         real(8),parameter :: dz = H/real(k_max,8) !z方向の格子幅Delta_z
         integer,parameter :: timestep_max = floor(max_t/delta_t)!時間ステップの最大数
+        real(8) :: v_integral_max
 
     !
 
@@ -373,6 +374,24 @@ module output_module
 
     end subroutine calculate_stream_function
 
+    subroutine calculate_v_integral(v_in)
+        implicit none
+        real(8),intent(in) :: v_in(0:j_max,-1:k_max)
+        real(8) :: integral
+        integer :: i,k
+
+        do j = 0,j_max
+            integral = 0.0d0
+            do k = 0,k_max-1
+                integral = integral + v_in(j,k)*dz
+            end do
+            v_integral(j) = integral
+        end do
+
+        v_integral_max = abs(maxval(v_integral))
+    
+    end subroutine
+
     subroutine write_data(time,output_step,timestep)
         implicit none
         real(8),intent(in) :: time
@@ -390,12 +409,13 @@ module output_module
         end do
         write(10,*)" "
         end do
-
         close(10)
+
     end subroutine write_data
+
 end module output_module
 
-program main
+module main_loop
     use parameters_and_variables_for_simulation
     use initialization
     use update_variables
@@ -404,57 +424,78 @@ program main
     use output_module
     implicit none
 
-    integer :: timestep,outstep
-    real(8) :: time
+    contains
 
-    !初期状態の設定
-    call initiate_directory()
-    call allocate_variables()
-    call initialize_pot_temp_E()
-    call initialize_field()
-    call update_boundary_u(u)
-    call update_boundary_v(v)
-    call update_boundary_potential_temp(pot_temp)
+    subroutine main_loop_of_simulation
+        implicit none
+        integer :: timestep,outstep
+        real(8) :: time
 
-    outstep = 0
-    do timestep = 1,timestep_max
+        !初期状態の設定
+        call initiate_directory()
+        call allocate_variables()
+        call initialize_pot_temp_E()
+        call initialize_field()
+        call update_boundary_u(u)
+        call update_boundary_v(v)
+        call update_boundary_potential_temp(pot_temp)
+
+        outstep = 0
+        open(20,file="./dataout/v_integral.dat",status='replace',action='write')
+        write(20,*) "time,v_integral[m^2/s]"
+        do timestep = 1,timestep_max
+            
+            !u^n,v^n,...から診断変数を求める(松野スキームステップ1)
+            call calculate_w(v)
+                !出力
+                if (mod(timestep,outstep_interval)==1) then
+                    call calculate_stream_function(v_in=v)
+                    call calculate_v_integral(v_in=v)
+                    outstep = outstep + 1
+                    write(*,'(f4.1,A,i4)') real(timestep-1,8)*100.0/real(timestep_max,8),"%, outputstep=",outstep
+                    time = delta_t * (timestep-1)
+                    call write_data(time,outstep,timestep-1)
+                    write(20,*) time/86400.0d0,v_integral_max
+                end if
+            call calculate_partial_Phi(u_in=u,v_in=v,pot_temp_in=pot_temp,w_in=w)
+
+            !u^n,v^n,...+診断変数によりu^*,v^*...を求める
+            call update_u(u_in=u, v_in=v, w_in=w, u_n=u, u_out=u_mid)
+            call update_boundary_u(u_in=u_mid)
+            call update_v(u_in=u,v_in=v,w_in=w,Phi_diff_in=Phi_diff,v_n=v,v_out=v_mid)
+            call update_boundary_v(v_in=v_mid)
+            call update_potential_temperature(v_in=v,w_in=w,pot_temp_in=pot_temp,pot_temp_n=pot_temp,pot_temp_out=pot_temp_mid)
+            call update_boundary_potential_temp(pot_temp_in=pot_temp_mid)
+
+            !u^*,v^*..から診断変数を求める(松野スキームのステップ2)
+            call calculate_w(v_mid)
+            call calculate_partial_Phi(u_in=u_mid,v_in=v_mid,pot_temp_in=pot_temp_mid,w_in=w)
+
+            !u^n,v^n,...+診断変数によりu^n+1,v^n+1,...を求める
+            call update_u(u_in=u_mid,v_in=v_mid,w_in=w,u_n=u,u_out=u_temporal)
+            u = u_temporal
+            call update_boundary_u(u_in=u)
+            call update_v(u_in=u_mid,v_in=v_mid,w_in=w,Phi_diff_in=Phi_diff,v_n=v,v_out=v_temporal)
+            v = v_temporal
+            call update_boundary_v(v_in=v)
+            call update_potential_temperature(v_in=v_mid,w_in=w,pot_temp_in=pot_temp_mid,pot_temp_n=pot_temp,pot_temp_out=pot_temp_temporal)
+            pot_temp = pot_temp_temporal
+            call update_boundary_potential_temp(pot_temp_in=pot_temp)
+
+        end do
+        close(20)
         
-        !u^n,v^n,...から診断変数を求める(松野スキームステップ1)
-        call calculate_w(v)
-            !出力
-            if (mod(timestep,outstep_interval)==1) then
-                call calculate_stream_function(v_in=v)
-                outstep = outstep + 1
-                write(*,'(f4.1,A,i4)') real(timestep-1,8)*100.0/real(timestep_max,8),"%, outputstep=",outstep
-                time = delta_t * (timestep-1)
-                call write_data(time,outstep,timestep-1)
-            end if
-        call calculate_partial_Phi(u_in=u,v_in=v,pot_temp_in=pot_temp,w_in=w)
+    end subroutine main_loop_of_simulation
 
-        !u^n,v^n,...+診断変数によりu^*,v^*...を求める
-        call update_u(u_in=u, v_in=v, w_in=w, u_n=u, u_out=u_mid)
-        call update_boundary_u(u_in=u_mid)
-        call update_v(u_in=u,v_in=v,w_in=w,Phi_diff_in=Phi_diff,v_n=v,v_out=v_mid)
-        call update_boundary_v(v_in=v_mid)
-        call update_potential_temperature(v_in=v,w_in=w,pot_temp_in=pot_temp,pot_temp_n=pot_temp,pot_temp_out=pot_temp_mid)
-        call update_boundary_potential_temp(pot_temp_in=pot_temp_mid)
 
-        !u^*,v^*..から診断変数を求める(松野スキームのステップ2)
-        call calculate_w(v_mid)
-        call calculate_partial_Phi(u_in=u_mid,v_in=v_mid,pot_temp_in=pot_temp_mid,w_in=w)
 
-        !u^n,v^n,...+診断変数によりu^n+1,v^n+1,...を求める
-        call update_u(u_in=u_mid,v_in=v_mid,w_in=w,u_n=u,u_out=u_temporal)
-        u = u_temporal
-        call update_boundary_u(u_in=u)
-        call update_v(u_in=u_mid,v_in=v_mid,w_in=w,Phi_diff_in=Phi_diff,v_n=v,v_out=v_temporal)
-        v = v_temporal
-        call update_boundary_v(v_in=v)
-        call update_potential_temperature(v_in=v_mid,w_in=w,pot_temp_in=pot_temp_mid,pot_temp_n=pot_temp,pot_temp_out=pot_temp_temporal)
-        pot_temp = pot_temp_temporal
-        call update_boundary_potential_temp(pot_temp_in=pot_temp)
+end module main_loop
 
-    end do
+program main
+    use main_loop
+    implicit none
 
+    read(*,*) nu
+    call main_loop_of_simulation()
 
 end program main
