@@ -9,6 +9,8 @@
     nu_tag = system(sprintf("echo %s | sed 's/\\./p/g'", nu))
     video_dir = sprintf("../videoout/nu%s", nu_tag)
     system(sprintf("mkdir -p %s", video_dir))
+    if (!exists("max")) max = "1000"
+    max_stream=max
 #
 
 # stream_func
@@ -29,7 +31,7 @@
     set contour base
 
     set view 0,0
-    set cntrparam levels 20
+    set cntrparam levels incremental -max_stream*2,max_stream/10,max_stream*2
     unset key
     set colorbox
     set cblabel "流線関数"
@@ -206,7 +208,7 @@
         splot\
         file_in_name using 1:($2/1000.0):4 with pm3d notitle,\
         contour_clean using 1:2:3 with lines lc rgb "black" lw 1.5 notitle,\
-        contour_clean every 75 using 1:2:3:(sprintf("%.0f",$3)) with labels tc rgb "black" notitle
+        contour_clean every 75 using 1:2:3:(sprintf("%.1f",$3)) with labels tc rgb "black" notitle
 
         print sprintf("plotting southwind %d / %d", n, last_filenum)
     }
@@ -222,7 +224,7 @@
 # 鉛直流
     system("rm -rf ../imageout/*")
 
-    #set cntrparam levels incremental -0.02,0.001,0.02
+    set cntrparam levels incremental -0.02,0.0005,0.02
     set cntrparam levels 20
     set cblabel "鉛直流[m/s]"
 
@@ -333,7 +335,7 @@
         contour_clean using 1:2:3 with lines lc rgb "black" lw 1.5 notitle,\
         #contour_clean every 75 using 1:2:3:(sprintf("%.3f",$3)) with labels tc rgb "black" notitle
 
-        print sprintf("plotting upwardwind %d / %d", n, last_filenum)
+        print sprintf("plotting pot temp %d / %d", n, last_filenum)
     }
 
     video_name = sprintf("%s/pottemp.mp4", video_dir)

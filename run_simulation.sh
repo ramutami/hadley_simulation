@@ -8,7 +8,7 @@ ROOT_DIR="$(pwd)"
 
     mkdir -p ./plt/out
     cd ./plt
-    gnuplot -e "nu='0.0'" plot_all.plt
+    gnuplot -e "nu='0.0'; max='1000' " plot_all.plt
 #
     cd "$ROOT_DIR"
     mkdir -p ./out
@@ -17,7 +17,7 @@ ROOT_DIR="$(pwd)"
 
     mkdir -p ./plt/out
     cd ./plt
-    gnuplot -e "nu='25.0'" plot_all.plt
+    gnuplot -e "nu='25.0'; max='5000' " plot_all.plt
 
 #
     cd "$ROOT_DIR"
@@ -27,7 +27,7 @@ ROOT_DIR="$(pwd)"
 
     mkdir -p ./plt/out
     cd ./plt
-    gnuplot -e "nu='10.0'" plot_all.plt
+    gnuplot -e "nu='10.0'; max='3000' " plot_all.plt
 
 #
     cd "$ROOT_DIR"
@@ -37,7 +37,7 @@ ROOT_DIR="$(pwd)"
 
     mkdir -p ./plt/out
     cd ./plt
-    gnuplot -e "nu='5.0'" plot_all.plt
+    gnuplot -e "nu='5.0'; max='1500' " plot_all.plt
 
 #
     cd "$ROOT_DIR"
@@ -47,7 +47,7 @@ ROOT_DIR="$(pwd)"
 
     mkdir -p ./plt/out
     cd ./plt
-    gnuplot -e "nu='2.5'" plot_all.plt
+    gnuplot -e "nu='2.5'; max='1000' " plot_all.plt
 
 #
     cd "$ROOT_DIR"
@@ -57,7 +57,7 @@ ROOT_DIR="$(pwd)"
 
     mkdir -p ./plt/out
     cd ./plt
-    gnuplot -e "nu='1.0'" plot_all.plt
+    gnuplot -e "nu='1.0'; max='800' " plot_all.plt
 
 #
     cd "$ROOT_DIR"
@@ -67,6 +67,6 @@ ROOT_DIR="$(pwd)"
 
     mkdir -p ./plt/out
     cd ./plt
-    gnuplot -e "nu='0.5'" plot_all.plt
+    gnuplot -e "nu='0.5'; max='1000' " plot_all.plt
 
 
